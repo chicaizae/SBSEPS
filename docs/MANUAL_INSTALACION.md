@@ -100,6 +100,7 @@ DB_USER=seguridadinf
 DB_PASSWORD=seguridadinf
 
 SESSION_SECRET=cambie-este-secreto-largo-y-aleatorio
+COOKIE_SECURE=auto
 ```
 
 Muy importante: cambie `SESSION_SECRET` por una frase larga y dificil de adivinar. Ejemplo:
@@ -296,19 +297,26 @@ Emita el certificado:
 sudo certbot --nginx -d su-dominio.com
 ```
 
-Cuando ya use HTTPS con dominio, puede dejar en `.env`:
+Mantenga en `.env`:
 
 ```env
 NODE_ENV=production
+COOKIE_SECURE=auto
 ```
 
-Si entra directo por `http://IP:8080`, use:
+Con `COOKIE_SECURE=auto`, el captcha y la sesion funcionan tanto en HTTP interno como en HTTPS. La cookie se marca como `Secure` solamente cuando la aplicacion detecta HTTPS.
+
+Si por politica de seguridad desea forzar cookies seguras solo para HTTPS, use:
 
 ```env
-NODE_ENV=development
+COOKIE_SECURE=true
 ```
 
-Esto evita problemas con captcha y cookies seguras mientras no exista HTTPS.
+Si esta en una red interna sin HTTPS y necesita desactivar `Secure` de forma explicita, use:
+
+```env
+COOKIE_SECURE=false
+```
 
 ## 11. Actualizar la aplicacion desde GitHub
 

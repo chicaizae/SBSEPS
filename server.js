@@ -145,8 +145,14 @@ let dbType = process.env.DB_HOST ? 'mariadb' : 'sqlite';
 let dbPool = null; // MySQL Pool
 let sqliteDb = null; // SQLite connection
 
-function isProduction() {
-    return process.env.NODE_ENV === 'production';
+function isHttpsRequest(req) {
+    return Boolean(req?.secure || req?.headers?.['x-forwarded-proto'] === 'https');
+}
+
+function shouldUseSecureCookies(req) {
+    if (String(process.env.COOKIE_SECURE || '').toLowerCase() === 'true') return true;
+    if (String(process.env.COOKIE_SECURE || '').toLowerCase() === 'false') return false;
+    return isHttpsRequest(req);
 }
 
 function parseCookies(req) {
@@ -178,14 +184,14 @@ function decodeSignedCookie(value) {
     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected)) ? payload : null;
 }
 
-function setCookie(res, name, value, options = {}) {
+function setCookie(req, res, name, value, options = {}) {
     const parts = [
         `${name}=${encodeURIComponent(value)}`,
         'HttpOnly',
         'SameSite=Strict',
         'Path=/'
     ];
-    if (isProduction()) parts.push('Secure');
+    if (shouldUseSecureCookies(req)) parts.push('Secure');
     if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
     const nextCookie = parts.join('; ');
     const current = res.getHeader('Set-Cookie');
@@ -198,8 +204,8 @@ function setCookie(res, name, value, options = {}) {
     }
 }
 
-function clearCookie(res, name) {
-    setCookie(res, name, '', { maxAge: 0 });
+function clearCookie(req, res, name) {
+    setCookie(req, res, name, '', { maxAge: 0 });
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
@@ -668,7 +674,7 @@ function publicUser(user) {
 app.get('/api/auth/captcha', (req, res) => {
     const captcha = generateCaptcha();
     const expiresAt = Date.now() + 5 * 60 * 1000;
-    setCookie(res, CAPTCHA_COOKIE, encodeSignedCookie(`${captcha.answer}:${expiresAt}`), { maxAge: 300 });
+    setCookie(req, res, CAPTCHA_COOKIE, encodeSignedCookie(`${captcha.answer}:${expiresAt}`), { maxAge: 300 });
     res.json({ success: true, question: captcha.question });
 });
 
@@ -690,15 +696,15 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const sid = createSession(user);
-    setCookie(res, SESSION_COOKIE, encodeSignedCookie(sid), { maxAge: Math.floor(SESSION_TTL_MS / 1000) });
-    clearCookie(res, CAPTCHA_COOKIE);
+    setCookie(req, res, SESSION_COOKIE, encodeSignedCookie(sid), { maxAge: Math.floor(SESSION_TTL_MS / 1000) });
+    clearCookie(req, res, CAPTCHA_COOKIE);
     res.json({ success: true, user: publicUser(sessions.get(sid).user) });
 });
 
 app.post('/api/auth/logout', requireAuth, (req, res) => {
     const sid = decodeSignedCookie(parseCookies(req)[SESSION_COOKIE]);
     if (sid) sessions.delete(sid);
-    clearCookie(res, SESSION_COOKIE);
+    clearCookie(req, res, SESSION_COOKIE);
     res.json({ success: true });
 });
 
