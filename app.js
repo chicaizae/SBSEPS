@@ -185,10 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.success && data.evaluations && data.evaluations.length > 0) {
                         // Cargar la primera evaluación
                         await loadEvaluationFromDb(data.evaluations[0].id);
-                    } else if (user.role === 'admin') {
-                        welcomeScreen.style.display = 'flex';
-                        workspace.style.display = 'none';
-                        applyRoleRestrictions();
+                    } else if (user.role === 'admin' || user.role === 'auditor') {
+                        await startNewEvaluationFromTemplate({ auto: true });
                     } else {
                         // Si no hay evaluaciones, mostrar workspace vacío
                         state.evaluationId = '';
@@ -333,8 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAuth();
 
     // Start a new evaluation using the template
-    document.getElementById('btn-start-new').addEventListener('click', async () => {
-        const company = companyInput.value.trim();
+    async function startNewEvaluationFromTemplate(options = {}) {
+        const company = companyInput.value.trim() || state.orgSettings.companyName;
         const evaluator = evaluatorInput.value.trim();
         const evalDate = dateInput.value;
 
@@ -373,12 +371,16 @@ document.addEventListener('DOMContentLoaded', () => {
             workspace.style.display = 'flex';
 
             applyRoleRestrictions();
-            switchSection('sec-dashboard-exec');
-            showToast('Nueva evaluación inicializada', 'success');
+            switchSection(options.auto ? 'sec-evaluation' : 'sec-dashboard-exec');
+            showToast(options.auto ? 'Controles cargados desde plantilla' : 'Nueva evaluación inicializada', 'success');
         } catch (e) {
             console.error(e);
             showToast('Error al inicializar nueva evaluación.', 'error');
         }
+    }
+
+    document.getElementById('btn-start-new').addEventListener('click', () => {
+        startNewEvaluationFromTemplate();
     });
 
     // Load evaluation from DB
@@ -640,7 +642,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const evalLink = document.querySelector('.menu-item[data-target="sec-evaluation"]');
         const gapsLink = document.querySelector('.menu-item[data-target="sec-gaps"]');
         const saveBtn = document.getElementById('btn-save-eval');
-        const changeBtn = document.getElementById('btn-change-file');
         const adminLink = document.querySelector('.menu-item[data-target="sec-users"]');
         const settingsLink = document.querySelector('.menu-item[data-target="sec-settings"]');
         const updatesLink = document.querySelector('.menu-item[data-target="sec-updates"]');
@@ -650,7 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (evalLink) evalLink.style.display = 'flex';
         if (gapsLink) gapsLink.style.display = 'flex';
         if (saveBtn) saveBtn.style.display = 'flex';
-        if (changeBtn) changeBtn.style.display = 'flex';
         if (adminLink) adminLink.style.display = role === 'admin' ? 'flex' : 'none';
         if (settingsLink) settingsLink.style.display = role === 'admin' ? 'flex' : 'none';
         if (updatesLink) updatesLink.style.display = role === 'admin' ? 'flex' : 'none';
@@ -667,7 +667,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (role === 'tecnico') {
             // Cannot save to Database or change files
             if (saveBtn) saveBtn.style.display = 'none';
-            if (changeBtn) changeBtn.style.display = 'none';
         }
     }
 
@@ -918,7 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('btn-logout').addEventListener('click', async () => {
+    async function logoutAndReturnToLogin() {
         try {
             await requestJson('/api/auth/logout', { method: 'POST' });
         } catch (e) {
@@ -931,7 +930,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.style.display = 'flex';
         document.body.classList.remove('is-admin');
         refreshCaptcha();
-    });
+    }
+
+    document.getElementById('btn-logout').addEventListener('click', logoutAndReturnToLogin);
+    document.getElementById('btn-logout-welcome')?.addEventListener('click', logoutAndReturnToLogin);
 
 
     // --- FORMULA RECALCULATOR ---
@@ -2412,17 +2414,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
-    // --- RESET / CHANGE EVALUATION ---
-    document.getElementById('btn-change-file').addEventListener('click', () => {
-        if (confirm('¿Desea salir de la evaluación actual? Los cambios no guardados se perderán.')) {
-            state.evaluationId = '';
-            state.rows = [];
-            welcomeScreen.style.display = 'flex';
-            workspace.style.display = 'none';
-            loadSavedEvaluationsList();
-        }
-    });
 
     // --- EXPORT TO EXCEL ---
     function exportToExcel() {

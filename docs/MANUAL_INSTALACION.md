@@ -8,6 +8,7 @@ Esta guia explica como instalar la aplicacion SBSEPS desde GitHub de una forma s
 - Acceso a una cuenta con permisos `sudo`.
 - Conexion a internet.
 - Puerto `8080` disponible.
+- Node.js 20.17.0 o superior.
 - La direccion del repositorio:
 
 ```bash
@@ -22,6 +23,8 @@ Entre al servidor por terminal y ejecute:
 sudo apt update
 sudo apt install -y git nodejs npm mariadb-server unzip
 ```
+
+Si `node -v` muestra una version menor a `v20.17.0`, instale Node.js 20 LTS actualizado antes de continuar.
 
 Active MariaDB:
 
@@ -142,6 +145,8 @@ Abra en el navegador:
 http://IP-DEL-SERVIDOR:8080
 ```
 
+Si el navegador o Sophos bloquea la pagina por ser insegura, no use `https://IP:8080`. La aplicacion en el puerto `8080` sirve HTTP. Para produccion use un dominio con HTTPS y Nginx como proxy inverso.
+
 Credenciales iniciales:
 
 - Usuario: `admin`
@@ -184,13 +189,7 @@ Para crear la primera auditoria:
 
 Alli se mostraran los controles cargados desde la base.
 
-Si ya esta dentro del sistema y no ve la pantalla inicial, presione:
-
-```text
-Cambiar Auditoria
-```
-
-Luego seleccione una auditoria guardada o cree una nueva desde plantilla.
+Si ya esta dentro del sistema, los controles se muestran en `Evaluacion Activa`. Si no aparecen, cierre sesion y vuelva a ingresar; cuando no exista una auditoria guardada, el sistema cargara automaticamente la plantilla de controles.
 
 ## 9. Dejar la aplicacion como servicio
 
@@ -244,6 +243,72 @@ Ver errores en vivo:
 ```bash
 sudo journalctl -u sbseps -f
 ```
+
+## 10.1. Publicar con HTTPS para evitar bloqueos de seguridad
+
+Para produccion, lo recomendado es:
+
+```text
+https://su-dominio.com -> Nginx con SSL -> http://localhost:8080
+```
+
+Instale Nginx y Certbot:
+
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+Cree el archivo:
+
+```bash
+sudo nano /etc/nginx/sites-available/sbseps
+```
+
+Contenido de ejemplo:
+
+```nginx
+server {
+    listen 80;
+    server_name su-dominio.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Active el sitio:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/sbseps /etc/nginx/sites-enabled/sbseps
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Emita el certificado:
+
+```bash
+sudo certbot --nginx -d su-dominio.com
+```
+
+Cuando ya use HTTPS con dominio, puede dejar en `.env`:
+
+```env
+NODE_ENV=production
+```
+
+Si entra directo por `http://IP:8080`, use:
+
+```env
+NODE_ENV=development
+```
+
+Esto evita problemas con captcha y cookies seguras mientras no exista HTTPS.
 
 ## 11. Actualizar la aplicacion desde GitHub
 
@@ -358,12 +423,32 @@ sudo systemctl restart sbseps
 
 ### Error instalando sqlite3
 
+Verifique primero que Node sea `v20.17.0` o superior:
+
+```bash
+node -v
+```
+
 Instale herramientas de compilacion:
 
 ```bash
 sudo apt install -y build-essential python3 make g++
 npm rebuild sqlite3
 ```
+
+### Mensaje: packages are looking for funding
+
+Este mensaje es informativo de npm. No es un error y no impide que la aplicacion funcione:
+
+```text
+packages are looking for funding
+```
+
+### Mensaje: vulnerabilidad en xlsx
+
+`npm audit` puede reportar una vulnerabilidad alta en `xlsx`. Actualmente no existe correccion directa publicada para esa libreria. En esta aplicacion el Excel se usa solo para la plantilla local incluida en el servidor y para exportacion, no para aceptar archivos Excel libres desde usuarios.
+
+Mantenga el servidor protegido con HTTPS, firewall y acceso solo a usuarios autorizados.
 
 ### No se suben archivos o logo
 

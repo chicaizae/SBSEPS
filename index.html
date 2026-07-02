@@ -122,6 +122,10 @@
                 <i data-lucide="info"></i>
                 <span>La aplicación se conecta a MariaDB (producción) con fallback automático a SQLite local.</span>
             </div>
+
+            <button class="btn btn-danger-outline btn-block" id="btn-logout-welcome" style="margin-top: 14px;">
+                <i data-lucide="power"></i> Cerrar Sesion / Cambiar Usuario
+            </button>
         </div>
     </div>
 
@@ -183,7 +187,7 @@
                 </a>
                 <a href="#" class="menu-item admin-only" data-target="sec-settings">
                     <i data-lucide="palette"></i>
-                    <span>PersonalizaciÃ³n</span>
+                    <span>Personalizacion</span>
                 </a>
                 <a href="#" class="menu-item admin-only" data-target="sec-updates">
                     <i data-lucide="package-plus"></i>
@@ -194,19 +198,16 @@
             <!-- Acciones Rápidas -->
             <div class="sidebar-actions">
                 <button class="btn btn-success btn-block" id="btn-save-eval">
-                    <i data-lucide="save"></i> Guardar en BD
+                    <i data-lucide="save"></i> Guardar Auditoria
                 </button>
                 <button class="btn btn-secondary btn-block" id="btn-export-excel">
                     <i data-lucide="download"></i> Exportar a Excel
-                </button>
-                <button class="btn btn-danger-outline btn-block" id="btn-change-file">
-                    <i data-lucide="log-out"></i> Cambiar Auditoría
                 </button>
                 <button class="btn btn-secondary btn-block" id="btn-open-password">
                     <i data-lucide="key-round"></i> Cambiar Contraseña
                 </button>
                 <button class="btn btn-danger-outline btn-block" id="btn-logout">
-                    <i data-lucide="power"></i> Cerrar Sesión
+                    <i data-lucide="power"></i> Cerrar Sesion / Cambiar Usuario
                 </button>
             </div>
         </aside>
@@ -751,14 +752,14 @@
             <div id="sec-settings" class="content-section">
                 <div class="section-header">
                     <div>
-                        <h1>PersonalizaciÃ³n Institucional</h1>
-                        <p>Configure los datos que aparecerÃ¡n en pantallas, cabeceras y reportes.</p>
+                        <h1>Personalizacion Institucional</h1>
+                        <p>Configure los datos que apareceran en pantallas, cabeceras y reportes.</p>
                     </div>
                 </div>
 
                 <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
                     <div class="card">
-                        <h3>Datos de instalaciÃ³n</h3>
+                        <h3>Datos de instalacion</h3>
                         <div class="form-group">
                             <label for="settings-company-name">Nombre de la empresa</label>
                             <input type="text" id="settings-company-name" placeholder="Nombre institucional">
@@ -772,7 +773,7 @@
                             <input type="file" id="settings-logo" accept=".png,.jpg,.jpeg,.webp">
                         </div>
                         <button class="btn btn-primary btn-block" id="btn-save-settings">
-                            <i data-lucide="save"></i> Guardar PersonalizaciÃ³n
+                            <i data-lucide="save"></i> Guardar Personalizacion
                         </button>
                     </div>
 
@@ -781,7 +782,7 @@
                         <div class="brand-preview">
                             <img id="settings-logo-preview" src="CFC.png" alt="Logo institucional" onerror="this.style.display='none'">
                             <div>
-                                <h4 id="settings-company-preview">CorporaciÃ³n CFC S.A.</h4>
+                                <h4 id="settings-company-preview">Corporacion CFC S.A.</h4>
                                 <p id="settings-legal-preview">Representante Legal</p>
                             </div>
                         </div>
