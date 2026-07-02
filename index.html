@@ -12,25 +12,29 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="cfc-watermark" aria-label="Powered by Ecoilpet S.A.">
+        <img src="CFC.png" alt="CFC">
+        <span>Powered by Ecoilpet S.A.</span>
+    </div>
+
     <!-- 0. LOGIN -->
     <div class="screen-overlay" id="login-screen">
         <div class="welcome-card auth-card">
             <div class="welcome-header">
                 <div class="logo-icon">
-                    <i data-lucide="lock-keyhole"></i>
+                    <img src="CFC.png" alt="CFC">
                 </div>
                 <h1>Ingreso SBSEPS</h1>
-                <p>Acceso seguro por usuario, perfil y captcha.</p>
             </div>
 
             <div class="company-form">
                 <div class="form-group">
                     <label for="login-username">Usuario</label>
-                    <input type="text" id="login-username" autocomplete="username" value="admin">
+                    <input type="text" id="login-username" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label for="login-password">Contraseña</label>
-                    <input type="password" id="login-password" autocomplete="current-password" value="admin">
+                    <input type="password" id="login-password" autocomplete="new-password">
                 </div>
                 <div class="form-row">
                     <div class="form-group">

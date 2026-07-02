@@ -156,6 +156,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     }
 
+    function clearLoginFields() {
+        ['login-username', 'login-password', 'login-captcha'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) input.value = '';
+        });
+    }
+
     function applyAuthenticatedUser(user) {
         state.currentUser = user;
         state.currentRole = user.role;
@@ -228,6 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loginScreen.style.display = 'flex';
             welcomeScreen.style.display = 'none';
             workspace.style.display = 'none';
+            clearLoginFields();
+            setTimeout(clearLoginFields, 150);
             refreshCaptcha();
         }
     }
@@ -929,6 +938,8 @@ document.addEventListener('DOMContentLoaded', () => {
         welcomeScreen.style.display = 'none';
         loginScreen.style.display = 'flex';
         document.body.classList.remove('is-admin');
+        clearLoginFields();
+        setTimeout(clearLoginFields, 150);
         refreshCaptcha();
     }
 
