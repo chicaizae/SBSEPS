@@ -185,6 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.success && data.evaluations && data.evaluations.length > 0) {
                         // Cargar la primera evaluación
                         await loadEvaluationFromDb(data.evaluations[0].id);
+                    } else if (user.role === 'admin') {
+                        welcomeScreen.style.display = 'flex';
+                        workspace.style.display = 'none';
+                        applyRoleRestrictions();
                     } else {
                         // Si no hay evaluaciones, mostrar workspace vacío
                         state.evaluationId = '';
@@ -650,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (adminLink) adminLink.style.display = role === 'admin' ? 'flex' : 'none';
         if (settingsLink) settingsLink.style.display = role === 'admin' ? 'flex' : 'none';
         if (updatesLink) updatesLink.style.display = role === 'admin' ? 'flex' : 'none';
-        if (cardStartNew) cardStartNew.style.display = role === 'auditor' ? 'flex' : 'none';
+        if (cardStartNew) cardStartNew.style.display = (role === 'auditor' || role === 'admin') ? 'flex' : 'none';
 
         if (role === 'informes') {
             // Read-only report view

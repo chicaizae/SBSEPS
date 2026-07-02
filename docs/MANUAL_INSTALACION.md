@@ -171,6 +171,27 @@ Configure:
 
 Estos datos se reflejan en las pantallas, cabeceras, reportes y firmas.
 
+## 8.1. Ver los controles cargados
+
+Los controles no aparecen como una pantalla independiente al iniciar. Primero debe crear o abrir una auditoria.
+
+Para crear la primera auditoria:
+
+1. Ingrese como `admin` o como usuario `auditor`.
+2. En la pantalla inicial, complete empresa, auditor y fecha.
+3. Presione `Iniciar desde Plantilla`.
+4. Entre a `Evaluacion Activa`.
+
+Alli se mostraran los controles cargados desde la base.
+
+Si ya esta dentro del sistema y no ve la pantalla inicial, presione:
+
+```text
+Cambiar Auditoria
+```
+
+Luego seleccione una auditoria guardada o cree una nueva desde plantilla.
+
 ## 9. Dejar la aplicacion como servicio
 
 Esto permite que SBSEPS inicie automaticamente cuando el servidor se reinicie.
