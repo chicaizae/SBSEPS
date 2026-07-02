@@ -234,7 +234,7 @@
                                 <option value="informes">Informes (Lector)</option>
                             </select>
                         </div>
-                        <button class="btn btn-secondary" onclick="window.print()">
+                        <button class="btn btn-secondary" id="btn-print-exec">
                             <i data-lucide="printer"></i> Imprimir Reporte
                         </button>
                     </div>
@@ -428,7 +428,7 @@
                         <p>Análisis de madurez tecnológico segmentado por dominios de Seguridad de la Información.</p>
                     </div>
                     <div class="header-actions">
-                        <button class="btn btn-secondary" onclick="window.print()">
+                        <button class="btn btn-secondary" id="btn-print-tech">
                             <i data-lucide="printer"></i> Imprimir Reporte Técnico
                         </button>
                     </div>
@@ -505,9 +505,9 @@
                         </div>
                     </div>
                     
-                    <!-- Radar Chart de Dominios -->
+                    <!-- Grafico de Dominios -->
                     <div class="chart-card">
-                        <h3>Mapa de Radar de Cumplimiento</h3>
+                        <h3>Cumplimiento por Dominio</h3>
                         <div class="chart-container large-chart">
                             <canvas id="chart-categories"></canvas>
                         </div>

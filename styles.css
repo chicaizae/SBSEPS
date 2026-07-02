@@ -997,6 +997,28 @@ input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus
     margin-bottom: 12px;
 }
 
+.control-guidance {
+    display: none;
+    margin: -2px 0 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    border-left: 3px solid var(--color-info);
+    border-radius: var(--radius-sm);
+    background: var(--color-info-light);
+    color: var(--color-info-text);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.control-guidance div + div {
+    margin-top: 4px;
+}
+
+.question-card:hover .control-guidance,
+.question-card:focus-within .control-guidance {
+    display: block;
+}
+
 .question-form-controls {
     display: flex;
     flex-direction: column;

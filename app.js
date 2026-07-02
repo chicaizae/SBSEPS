@@ -935,6 +935,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-logout').addEventListener('click', logoutAndReturnToLogin);
     document.getElementById('btn-logout-welcome')?.addEventListener('click', logoutAndReturnToLogin);
 
+    function printCurrentView() {
+        setTimeout(() => window.print(), 50);
+    }
+
+    document.getElementById('btn-print-exec')?.addEventListener('click', printCurrentView);
+    document.getElementById('btn-print-tech')?.addEventListener('click', printCurrentView);
+
 
     // --- FORMULA RECALCULATOR ---
     function recalculateRowFormulas(row) {
@@ -1583,48 +1590,87 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.charts.categories) state.charts.categories.destroy();
         
         const ctx = document.getElementById('chart-categories').getContext('2d');
-        const domNames = metrics.domains.map(d => d.name.length > 20 ? d.name.substring(0, 18) + '...' : d.name);
-        const domValues = metrics.domains.map(d => d.compliancePct);
+        const orderedDomains = [...metrics.domains]
+            .sort((a, b) => a.compliancePct - b.compliancePct)
+            .slice(0, 12);
+        const domNames = orderedDomains.map(d => d.name.length > 34 ? d.name.substring(0, 31) + '...' : d.name);
+        const domValues = orderedDomains.map(d => d.compliancePct);
+        const domColors = domValues.map(value => {
+            if (value >= 80) return '#10b981';
+            if (value >= 50) return '#f59e0b';
+            return '#ef4444';
+        });
 
         state.charts.categories = new Chart(ctx, {
-            type: 'radar',
+            type: 'bar',
             data: {
                 labels: domNames,
                 datasets: [{
                     label: 'Cumplimiento %',
                     data: domValues,
-                    backgroundColor: 'rgba(74, 93, 110, 0.2)', // primary alpha
-                    borderColor: '#4a5d6e', // primary
-                    borderWidth: 2,
-                    pointBackgroundColor: '#4a5d6e',
-                    pointBorderColor: '#fff'
+                    backgroundColor: domColors,
+                    borderRadius: 6,
+                    barThickness: 16
                 }]
             },
             options: {
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => ` ${context.parsed.x}% de cumplimiento`
+                        }
+                    }
                 },
                 scales: {
-                    r: {
+                    x: {
+                        min: 0,
+                        max: 100,
                         grid: { color: '#e2e8f0' },
-                        angleLines: { color: '#e2e8f0' },
-                        pointLabels: {
-                            color: '#1e293b',
-                            font: { family: 'Outfit', size: 10 }
-                        },
                         ticks: {
-                            backdropColor: 'transparent',
                             color: '#64748b',
-                            font: { size: 9 },
-                            stepSize: 20
-                        },
-                        suggestedMin: 0,
-                        suggestedMax: 100
+                            callback: value => `${value}%`
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#1e293b',
+                            font: { family: 'Outfit', size: 10, weight: '600' }
+                        }
                     }
+                },
+                onClick: (event, elements) => {
+                    if (!elements.length) return;
+                    const domain = orderedDomains[elements[0].index]?.name;
+                    if (!domain) return;
+                    resetStateFilters();
+                    state.filters.domain = domain;
+                    switchSection('sec-evaluation');
+                },
+                animation: {
+                    duration: 500
                 }
-            }
+            },
+            plugins: [{
+                id: 'domainBarLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    const dataset = chart.data.datasets[0];
+                    const meta = chart.getDatasetMeta(0);
+                    ctx.save();
+                    ctx.font = '700 11px Outfit, Arial, sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    meta.data.forEach((bar, index) => {
+                        const value = dataset.data[index];
+                        ctx.fillText(`${value}%`, bar.x + 8, bar.y + 4);
+                    });
+                    ctx.restore();
+                }
+            }]
         });
     }
 
@@ -1905,6 +1951,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- RENDER ACTIVE EVALUATION (QUESTIONNAIRE) ---
+    function buildControlGuidance(row) {
+        const evidenceSource = row.evSource || row.evidence || 'Revise la evidencia documental, tecnica u operativa aplicable.';
+        const expectedControl = row.control || row.requirement || 'Validar el cumplimiento del requerimiento indicado.';
+        const action = row.u || row.t || 'Documentar hallazgo, evidencia y estado de cumplimiento.';
+        return `
+            <div class="control-guidance">
+                <div><strong>Que revisar:</strong> ${escapeHtml(expectedControl)}</div>
+                <div><strong>Documento / evidencia esperada:</strong> ${escapeHtml(evidenceSource)}</div>
+                <div><strong>Accion sugerida:</strong> ${escapeHtml(action)}</div>
+            </div>
+        `;
+    }
+
     function renderEvaluationList() {
         const container = document.getElementById('questions-container');
         const catFilter = document.getElementById('category-filter').value;
@@ -2019,6 +2078,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="question-category-tag">${escapeHtml(r.category)} &rsaquo; ${escapeHtml(r.subcategory)}</span>
                 </div>
                 <div class="question-text">${escapeHtml(r.requirement || r.control)}</div>
+                ${buildControlGuidance(r)}
                 
                 <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px; display:flex; gap:15px; flex-wrap:wrap;">
                     <span><strong>Normativa:</strong> ${escapeHtml(r.normative || 'Ambas')}</span>
