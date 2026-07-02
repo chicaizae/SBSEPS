@@ -1,0 +1,8 @@
+{
+  "name": "SBSEPS Due Diligence",
+  "version": "1.0.0",
+  "releaseDate": "2026-07-01",
+  "database": "SBSEPS",
+  "defaultAdmin": "admin",
+  "notes": "Version inicial lista para despliegue Linux con autenticacion, roles, controles en BBDD y registro de paquetes de actualizacion."
+}

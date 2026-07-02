@@ -1,0 +1,16 @@
+[Unit]
+Description=SBSEPS Due Diligence v1.0
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sbseps/app
+EnvironmentFile=/opt/sbseps/app/.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+User=sbseps
+Group=sbseps
+
+[Install]
+WantedBy=multi-user.target

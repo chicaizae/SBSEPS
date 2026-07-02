@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Due Diligence - Seguridad de la Información - CFC</title>
+    <!-- Google Fonts Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js and Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 0. LOGIN -->
+    <div class="screen-overlay" id="login-screen">
+        <div class="welcome-card auth-card">
+            <div class="welcome-header">
+                <div class="logo-icon">
+                    <i data-lucide="lock-keyhole"></i>
+                </div>
+                <h1>Ingreso SBSEPS</h1>
+                <p>Acceso seguro por usuario, perfil y captcha.</p>
+            </div>
+
+            <div class="company-form">
+                <div class="form-group">
+                    <label for="login-username">Usuario</label>
+                    <input type="text" id="login-username" autocomplete="username" value="admin">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Contraseña</label>
+                    <input type="password" id="login-password" autocomplete="current-password" value="admin">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Captcha</label>
+                        <div class="captcha-box">
+                            <span id="captcha-question">...</span>
+                            <button class="btn btn-secondary btn-sm" id="btn-refresh-captcha" type="button">
+                                <i data-lucide="refresh-cw"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-captcha">Resultado</label>
+                        <input type="text" id="login-captcha" inputmode="numeric" autocomplete="off">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-block" id="btn-login">
+                    <i data-lucide="log-in"></i> Ingresar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. PANTALLA DE INICIO (CARGA Y BIENVENIDA) -->
+    <div class="screen-overlay" id="upload-screen" style="display: none;">
+        <div class="welcome-card">
+            <div class="welcome-header">
+                <div class="logo-icon">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <h1>Evaluación de Due Diligence</h1>
+                <p>Cumplimiento Normativo SB / SEPS - Seguridad de la Información</p>
+            </div>
+
+            <!-- Formulario de Inicialización -->
+            <div class="company-form">
+                <h3>Datos Generales de la Evaluación</h3>
+                <div class="form-group">
+                    <label for="company-name">Empresa / Organización</label>
+                    <input type="text" id="company-name" value="Corporación CFC S.A." placeholder="Nombre de la empresa...">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="evaluator-name">Auditor / Evaluador</label>
+                        <input type="text" id="evaluator-name" placeholder="Nombre del evaluador...">
+                    </div>
+                    <div class="form-group">
+                        <label for="evaluation-date">Fecha de Evaluación</label>
+                        <input type="date" id="evaluation-date">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selección de Acciones -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 15px; text-align: left; margin-bottom: 25px;">
+                <div class="card" style="padding: 15px;" id="card-start-new-audit">
+                    <h4 style="font-size:0.85rem; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+                        <i data-lucide="file-plus" style="width:16px;height:16px;color:var(--color-primary)"></i> Nueva Auditoría
+                    </h4>
+                    <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:12px;">Inicie una nueva evaluación utilizando la matriz base de controles cargada en el servidor.</p>
+                    <button class="btn btn-primary btn-block" id="btn-start-new">
+                        <i data-lucide="arrow-right"></i> Iniciar desde Plantilla
+                    </button>
+                </div>
+                <div class="card" style="padding: 15px; display: none; flex-direction: column;" aria-hidden="true">
+                    <h4 style="font-size:0.85rem; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+                        <i data-lucide="upload" style="width:16px;height:16px;color:var(--color-primary)"></i> Importación Manual
+                    </h4>
+                    <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:12px;">Arrastre un archivo Excel (.xlsx) previamente calificado para ver sus métricas.</p>
+                    <div class="upload-zone" id="drop-zone">
+                        <p style="font-size:0.7rem; font-weight:600; text-align:center;">Arrastre aquí o haga clic para seleccionar</p>
+                        <input type="file" id="file-input" style="display:none;" accept=".xlsx, .xls">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial en DB -->
+            <div class="card" style="text-align: left; padding: 15px;">
+                <h4 style="font-size:0.85rem; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:5px;">
+                    <i data-lucide="database" style="width:16px;height:16px;color:var(--color-primary)"></i> Historial en Base de Datos
+                </h4>
+                <div id="db-evaluations-list" style="max-height: 140px; overflow-y: auto;">
+                    <!-- Se puebla por JS -->
+                    <div class="loading-placeholder" style="padding:15px;"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <div class="offline-mode-note">
+                <i data-lucide="info"></i>
+                <span>La aplicación se conecta a MariaDB (producción) con fallback automático a SQLite local.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. ESPACIO DE TRABAJO (DASHBOARD Y EVALUACIÓN ACTIVA) -->
+    <div class="app-container" id="workspace" style="display: none;">
+        <!-- Barra Lateral -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i data-lucide="shield-check"></i>
+                <span>Due Diligence</span>
+            </div>
+
+            <!-- Logotipo oficial de CFC -->
+            <div class="sidebar-logo-container">
+                <img src="CFC.png" alt="Logotipo CFC" onerror="this.style.display='none'">
+            </div>
+
+            <!-- Badge de Empresa Activa -->
+            <div class="company-badge">
+                <div class="badge-icon">
+                    <i data-lucide="building"></i>
+                </div>
+                <div class="badge-info">
+                    <h4 id="badge-company">CFC S.A.</h4>
+                    <p id="badge-date">2026-06-30</p>
+                </div>
+            </div>
+
+            <!-- Menú Principal -->
+            <nav class="sidebar-menu">
+                <a href="#" class="menu-item active" data-target="sec-dashboard-exec">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Dashboard Ejecutivo</span>
+                </a>
+                <a href="#" class="menu-item" data-target="sec-dashboard-tech">
+                    <i data-lucide="activity"></i>
+                    <span>Dashboard Técnico</span>
+                </a>
+                <a href="#" class="menu-item" data-target="sec-reports">
+                    <i data-lucide="file-text"></i>
+                    <span>Informes Regulatorios</span>
+                </a>
+                <a href="#" class="menu-item" data-target="sec-evolution">
+                    <i data-lucide="history"></i>
+                    <span>Historial y Evolución</span>
+                </a>
+                <a href="#" class="menu-item" data-target="sec-evaluation">
+                    <i data-lucide="check-square"></i>
+                    <span>Evaluación Activa</span>
+                </a>
+                <a href="#" class="menu-item" data-target="sec-gaps">
+                    <i data-lucide="alert-triangle"></i>
+                    <span>Plan de Brechas</span>
+                    <span class="badge-count" id="gap-count">0</span>
+                </a>
+                <a href="#" class="menu-item admin-only" data-target="sec-users">
+                    <i data-lucide="users"></i>
+                    <span>Usuarios y Roles</span>
+                </a>
+                <a href="#" class="menu-item admin-only" data-target="sec-updates">
+                    <i data-lucide="package-plus"></i>
+                    <span>Actualizaciones</span>
+                </a>
+            </nav>
+
+            <!-- Acciones Rápidas -->
+            <div class="sidebar-actions">
+                <button class="btn btn-success btn-block" id="btn-save-eval">
+                    <i data-lucide="save"></i> Guardar en BD
+                </button>
+                <button class="btn btn-secondary btn-block" id="btn-export-excel">
+                    <i data-lucide="download"></i> Exportar a Excel
+                </button>
+                <button class="btn btn-danger-outline btn-block" id="btn-change-file">
+                    <i data-lucide="log-out"></i> Cambiar Auditoría
+                </button>
+                <button class="btn btn-secondary btn-block" id="btn-open-password">
+                    <i data-lucide="key-round"></i> Cambiar Contraseña
+                </button>
+                <button class="btn btn-danger-outline btn-block" id="btn-logout">
+                    <i data-lucide="power"></i> Cerrar Sesión
+                </button>
+            </div>
+        </aside>
+
+        <!-- Contenedor de Contenidos -->
+        <main class="main-content">
+            
+            <!-- SECCIÓN 1: DASHBOARD EJECUTIVO -->
+            <div id="sec-dashboard-exec" class="content-section active">
+                <div class="section-header">
+                    <div>
+                        <h1>Dashboard Ejecutivo Gerencial</h1>
+                        <p>Resumen gerencial de nivel de madurez y cumplimiento normativo.</p>
+                    </div>
+                    <!-- Role Selector in navbar -->
+                    <div class="header-actions">
+                        <div class="role-badge-selector">
+                            <span>PERFIL ACTIVO:</span>
+                            <select id="user-role-select" disabled>
+                                <option value="admin">Administrador</option>
+                                <option value="auditor" selected>Auditor</option>
+                                <option value="tecnico">Técnico</option>
+                                <option value="revisor">Revisor</option>
+                                <option value="informes">Informes (Lector)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" onclick="window.print()">
+                            <i data-lucide="printer"></i> Imprimir Reporte
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de Métricas -->
+                <div class="metrics-grid">
+                    <div class="metric-card clickable-metric" id="metric-card-compliance">
+                        <div class="metric-icon val-cumple">
+                            <i data-lucide="award"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Cumplimiento Global</span>
+                            <h2 class="metric-value" id="metric-compliance">0%</h2>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="metric-compliance-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-card clickable-metric" id="metric-card-controls">
+                        <div class="metric-icon val-evaluar">
+                            <i data-lucide="check-circle-2"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Controles Conformados</span>
+                            <h2 class="metric-value" id="metric-controls-count">0 / 0</h2>
+                            <span class="metric-subtext" id="metric-controls-pct">0% del total aplicable</span>
+                        </div>
+                    </div>
+                    <div class="metric-card clickable-metric" id="metric-card-gaps">
+                        <div class="metric-icon val-nocumple">
+                            <i data-lucide="alert-octagon"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Brechas Abiertas (Gaps)</span>
+                            <h2 class="metric-value" id="metric-gaps-count">0</h2>
+                            <span class="metric-subtext" id="metric-gaps-high" style="color: var(--color-danger-text);">0 críticas / alta prioridad</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon val-parcial">
+                            <i data-lucide="activity"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Severidad del Riesgo</span>
+                            <h2 class="metric-value" id="metric-risk-level">Bajo</h2>
+                            <span class="metric-subtext" id="metric-risk-score">Riesgo Promedio: 0.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executive Summaries & Risk Heatmap Grid -->
+                <div class="exec-grid">
+                    <!-- Cumplimiento por Ente Regulador -->
+                    <div class="exec-card">
+                        <h3><i data-lucide="landmark"></i> Cumplimiento por Ente Regulador (Normativa)</h3>
+                        <div class="table-responsive">
+                            <table class="table" id="table-normative-summary">
+                                <thead>
+                                    <tr>
+                                        <th>Regulador</th>
+                                        <th>Total</th>
+                                        <th>Cumple</th>
+                                        <th>Parcial</th>
+                                        <th>No Cumple</th>
+                                        <th>% Cumpl.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Se puebla dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Fases de Mitigación y Cierre -->
+                    <div class="exec-card">
+                        <h3><i data-lucide="list-checks"></i> Ruta de Mitigación y Cierre (Fases sugeridas)</h3>
+                        <div class="table-responsive">
+                            <table class="table" id="table-phases-summary">
+                                <thead>
+                                    <tr>
+                                        <th>Fase de Mitigación</th>
+                                        <th>Total</th>
+                                        <th>Brechas Abiertas</th>
+                                        <th>% Cumpl.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Se puebla dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- MAPA DE CALOR DE RIESGOS (3x3 Matrix) -->
+                    <div class="exec-card" style="grid-column: span 2;">
+                        <h3><i data-lucide="grid"></i> Mapa de Calor de Riesgos (Criticidad vs Cumplimiento)</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: center;">
+                            <div>
+                                <p style="font-size:0.8rem; color:var(--text-secondary); line-height:1.4; margin-bottom:10px;">
+                                    Representación del nivel de riesgo derivado de la criticidad del control frente a su estado de cumplimiento.
+                                </p>
+                                <p style="font-size:0.75rem; color:var(--text-muted);">
+                                    * Haga clic en cualquier celda coloreada para ver instantáneamente los controles específicos asociados en la sección de evaluación.
+                                </p>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="heatmap-matrix" id="heatmap-table">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Cumple (Bajo)</th>
+                                            <th>Parcial (Medio)</th>
+                                            <th>No Cumple / PE (Alto)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th>Alta Prioridad</th>
+                                            <td class="risk-medio" data-priority="Alta" data-state="Cumple" id="cell-alta-cumple"><span class="cell-count">0</span><span class="cell-label">Medio</span></td>
+                                            <td class="risk-alto" data-priority="Alta" data-state="Parcial" id="cell-alta-parcial"><span class="cell-count">0</span><span class="cell-label">Alto</span></td>
+                                            <td class="risk-critico" data-priority="Alta" data-state="No cumple" id="cell-alta-nocumple"><span class="cell-count">0</span><span class="cell-label">Crítico</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Media Prioridad</th>
+                                            <td class="risk-bajo" data-priority="Media" data-state="Cumple" id="cell-media-cumple"><span class="cell-count">0</span><span class="cell-label">Bajo</span></td>
+                                            <td class="risk-medio" data-priority="Media" data-state="Parcial" id="cell-media-parcial"><span class="cell-count">0</span><span class="cell-label">Medio</span></td>
+                                            <td class="risk-alto" data-priority="Media" data-state="No cumple" id="cell-media-nocumple"><span class="cell-count">0</span><span class="cell-label">Alto</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Baja Prioridad</th>
+                                            <td class="risk-muybajo" data-priority="Baja" data-state="Cumple" id="cell-baja-cumple"><span class="cell-count">0</span><span class="cell-label">Muy Bajo</span></td>
+                                            <td class="risk-bajo" data-priority="Baja" data-state="Parcial" id="cell-baja-parcial"><span class="cell-count">0</span><span class="cell-label">Bajo</span></td>
+                                            <td class="risk-medio" data-priority="Baja" data-state="No cumple" id="cell-baja-nocumple"><span class="cell-count">0</span><span class="cell-label">Medio</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos del Dashboard -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Distribución de Estados de Control</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-states"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Avance por Prioridad de Brechas</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-priorities"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de brechas prioritarias -->
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Brechas Críticas Prioritarias (Auditoría)</h3>
+                        <span class="badge badge-danger">Revisión Inmediata</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table" id="table-top-gaps">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Categoría</th>
+                                    <th>Control / Requerimiento</th>
+                                    <th>Criticidad</th>
+                                    <th>Plazo Estimado</th>
+                                    <th>Fase de Mitigación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Se puebla dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2: DASHBOARD TÉCNICO -->
+            <div id="sec-dashboard-tech" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Dashboard de Cumplimiento Técnico</h1>
+                        <p>Análisis de madurez tecnológico segmentado por dominios de Seguridad de la Información.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="window.print()">
+                            <i data-lucide="printer"></i> Imprimir Reporte Técnico
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjetas Técnicas -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon val-cumple">
+                            <i data-lucide="layers"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Dominios Evaluados</span>
+                            <h2 class="metric-value">18 / 18</h2>
+                            <span class="metric-subtext">Seguridad de la Información</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon val-evaluar">
+                            <i data-lucide="cpu"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Tecnología y Controles</span>
+                            <h2 class="metric-value" id="tech-controls-count">0 / 0</h2>
+                            <span class="metric-subtext">Controles técnicos aplicables</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon val-nocumple">
+                            <i data-lucide="percent"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Penalización de Riesgo Total</span>
+                            <h2 class="metric-value" id="tech-risk-penalty">0</h2>
+                            <span class="metric-subtext">Suma de impactos de brechas</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon val-parcial">
+                            <i data-lucide="paperclip"></i>
+                        </div>
+                        <div class="metric-details">
+                            <span class="metric-label">Brechas con Evidencia Física</span>
+                            <h2 class="metric-value" id="tech-evidence-pct">0%</h2>
+                            <span class="metric-subtext" id="tech-evidence-count">0 de 0 soportes subidos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="grid-template-columns: 3fr 2fr;">
+                    <!-- Tabla de Dominios -->
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>Madurez por Dominio de Control</h3>
+                        </div>
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table" id="table-domain-summary">
+                                <thead>
+                                    <tr>
+                                        <th>Dominio de Seguridad</th>
+                                        <th>Total</th>
+                                        <th>Cumple</th>
+                                        <th>Parcial</th>
+                                        <th>No Cumple</th>
+                                        <th>No Aplica</th>
+                                        <th>% Cumpl.</th>
+                                        <th>Avance Eval.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Se puebla dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Radar Chart de Dominios -->
+                    <div class="chart-card">
+                        <h3>Mapa de Radar de Cumplimiento</h3>
+                        <div class="chart-container large-chart">
+                            <canvas id="chart-categories"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 3: INFORMES REGULATORIOS -->
+            <div id="sec-reports" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Generación de Informes y Reportes Regulatorios</h1>
+                        <p>Generación de reportes de cumplimiento y planes de acción oficiales para entes de control.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" id="btn-print-report">
+                            <i data-lucide="printer"></i> Imprimir Reporte (PDF)
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="reports-layout">
+                    <!-- Selector de Reportes -->
+                    <div class="reports-menu-card">
+                        <div class="report-menu-item active" data-report-type="exec-summary">
+                            <i data-lucide="file-text"></i>
+                            <span>Resumen Ejecutivo Gerencial</span>
+                        </div>
+                        <div class="report-menu-item" data-report-type="gap-plan">
+                            <i data-lucide="clipboard-list"></i>
+                            <span>Plan de Acción y Brechas</span>
+                        </div>
+                        <div class="report-menu-item" data-report-type="regulator-sb">
+                            <i data-lucide="landmark"></i>
+                            <span>Reporte Regulatorio SB</span>
+                        </div>
+                        <div class="report-menu-item" data-report-type="regulator-seps">
+                            <i data-lucide="landmark"></i>
+                            <span>Reporte Regulatorio SEPS</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Previsualización -->
+                    <div class="report-preview-container">
+                        <div class="report-preview-card" id="report-preview-card-content">
+                            <!-- JS inyectará el contenido aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 4: HISTORIAL Y EVOLUCIÓN -->
+            <div id="sec-evolution" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Historial de Auditorías y Evolución de Cumplimiento</h1>
+                        <p>Visualice la trazabilidad de cumplimiento a lo largo del tiempo.</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="grid-template-columns: 3fr 2fr; margin-bottom: 25px;">
+                    <!-- Tabla de Historial -->
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>Trazabilidad de Evaluaciones Registradas</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="table-history-list">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha Evaluación</th>
+                                        <th>Evaluador / Auditor</th>
+                                        <th>Cumplimiento</th>
+                                        <th>Controles Conformados</th>
+                                        <th>Brechas Críticas</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Se puebla dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico Histórico -->
+                    <div class="chart-card">
+                        <h3>Línea de Evolución del Cumplimiento</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-evolution"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 5: EVALUACIÓN ACTIVA (CUESTIONARIO) -->
+            <div id="sec-evaluation" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Evaluación Activa de Controles</h1>
+                        <p>Revise y califique cada control, y suba el archivo de soporte correspondiente.</p>
+                    </div>
+                    <!-- Filtros Rápidos -->
+                    <div class="header-actions">
+                        <button class="btn btn-danger-outline btn-sm" id="btn-clear-filters" style="display:none; padding:4px 8px; font-size:0.75rem;">
+                            <i data-lucide="x"></i> Limpiar Filtros
+                        </button>
+                        <div class="filter-wrapper">
+                            <label for="category-filter">Categoría:</label>
+                            <select id="category-filter" class="form-select">
+                                <option value="all">Todas las Categorías</option>
+                            </select>
+                        </div>
+                        <div class="filter-wrapper">
+                            <label for="state-filter">Estado:</label>
+                            <select id="state-filter" class="form-select">
+                                <option value="all">Todos los Estados</option>
+                                <option value="Cumple">Cumple</option>
+                                <option value="Parcial">Parcial</option>
+                                <option value="No cumple">No cumple</option>
+                                <option value="Por evaluar">Por evaluar</option>
+                                <option value="No aplica">No aplica</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cuestionario de Controles -->
+                <div class="evaluation-container">
+                    <div class="questions-list-wrapper">
+                        <div class="questions-summary-bar">
+                            <span id="filtered-count">Mostrando 0 de 0 controles</span>
+                            <div class="quick-stats">
+                                <span class="badge badge-success" id="qs-cumple">0 C</span>
+                                <span class="badge badge-warning" id="qs-parcial">0 P</span>
+                                <span class="badge badge-danger" id="qs-nocumple">0 NC</span>
+                                <span class="badge badge-info" id="qs-evaluar">0 PE</span>
+                            </div>
+                        </div>
+                        
+                        <div class="questions-scroll-area" id="questions-container">
+                            <!-- Se puebla por JS -->
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Cargando controles de la auditoría...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 6: ACCIONES Y PLAN DE BRECHAS -->
+            <div id="sec-gaps" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Plan de Brechas y Ruta de Mitigación</h1>
+                        <p>Consulte las acciones correctivas recomendadas y plazos de resolución por prioridad de brecha.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="btn-print-gaps">
+                            <i data-lucide="printer"></i> Imprimir Reporte de Brechas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Banner -->
+                <div class="alert-info-banner">
+                    <i data-lucide="help-circle"></i>
+                    <div>
+                        <strong>Ruta de Mitigación:</strong> Las brechas de control se ordenan por su fase de mitigación sugerida. Las tareas con criticidad <strong>Alta</strong> disponen de un plazo de resolución reducido (0-30 días) para evitar multas de cumplimiento legal.
+                    </div>
+                </div>
+
+                <!-- Lista de Fases y Brechas -->
+                <div class="evaluation-container" id="gaps-phases-list">
+                    <!-- Se puebla dinámicamente -->
+                </div>
+            </div>
+
+            <!-- SECCIÃ“N 7: ADMINISTRACIÃ“N DE USUARIOS -->
+            <div id="sec-users" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Administración de Usuarios y Roles</h1>
+                        <p>Gestione accesos, perfiles y restablecimiento de contraseñas.</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>Usuarios registrados</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="table-users">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Nombre</th>
+                                        <th>Rol</th>
+                                        <th>Activo</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Nuevo usuario</h3>
+                        <div class="form-group">
+                            <label for="new-user-username">Usuario</label>
+                            <input type="text" id="new-user-username">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-name">Nombre</label>
+                            <input type="text" id="new-user-name">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-role">Rol</label>
+                            <select id="new-user-role" class="form-select">
+                                <option value="auditor">Auditor</option>
+                                <option value="tecnico">Técnico</option>
+                                <option value="revisor">Revisor</option>
+                                <option value="informes">Informes</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-password">Contraseña inicial</label>
+                            <input type="password" id="new-user-password">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="btn-create-user">
+                            <i data-lucide="user-plus"></i> Crear Usuario
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCION 8: ACTUALIZACIONES -->
+            <div id="sec-updates" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>Actualizaciones de la Aplicación</h1>
+                        <p>Registre paquetes de actualización sin sobrescribir la versión instalada.</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
+                    <div class="card">
+                        <div class="card-header-flex">
+                            <h3>Paquetes registrados</h3>
+                            <span class="badge badge-info">Trazabilidad v1.0</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table" id="table-updates">
+                                <thead>
+                                    <tr>
+                                        <th>Versión</th>
+                                        <th>Título</th>
+                                        <th>Archivo</th>
+                                        <th>Estado</th>
+                                        <th>Checksum</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Registrar actualización</h3>
+                        <div class="form-group">
+                            <label for="update-version">Versión</label>
+                            <input type="text" id="update-version" placeholder="1.0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="update-title">Título</label>
+                            <input type="text" id="update-title" placeholder="Corrección o mejora">
+                        </div>
+                        <div class="form-group">
+                            <label for="update-description">Descripción</label>
+                            <textarea id="update-description" rows="4" placeholder="Cambios, instrucciones y validaciones"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="update-package">Paquete opcional (.zip, .sql, .json, .md, .txt)</label>
+                            <input type="file" id="update-package" accept=".zip,.sql,.json,.md,.txt">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="btn-register-update">
+                            <i data-lucide="upload-cloud"></i> Registrar Actualización
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="password-modal" style="display:none;">
+        <div class="modal-card">
+            <div class="card-header-flex">
+                <h3>Cambiar contraseña</h3>
+                <button class="btn btn-secondary btn-sm" id="btn-close-password"><i data-lucide="x"></i></button>
+            </div>
+            <div class="form-group">
+                <label for="current-password">Contraseña actual</label>
+                <input type="password" id="current-password">
+            </div>
+            <div class="form-group">
+                <label for="new-password">Nueva contraseña</label>
+                <input type="password" id="new-password">
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-save-password">
+                <i data-lucide="save"></i> Actualizar contraseña
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast de Notificaciones -->
+    <div class="toast" id="toast">
+        <i id="toast-icon"></i>
+        <span id="toast-message">Mensaje de notificación.</span>
+    </div>
+
+    <!-- Scripts de la Aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="output" style="font-family: monospace; white-space: pre;">Loading...</div>
+    <script>
+        async function run() {
+            const out = document.getElementById('output');
+            try {
+                const response = await fetch("DUE%20DILIGENCE%20SB%20SEPS%20SEGURIDAD%20DE%20LA%20INFORMACION%20-%20CFC.xlsx");
+                const arrayBuffer = await response.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                let text = "Sheets: " + workbook.SheetNames.join(", ") + "\n\n";
+                
+                const sheetName = 'Metricas_DD';
+                const sheet = workbook.Sheets[sheetName];
+                if (sheet) {
+                    text += `--- Content of ${sheetName} ---\n`;
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    rows.forEach((row, i) => {
+                        text += `Row ${i}: ${JSON.stringify(row)}\n`;
+                    });
+                } else {
+                    text += `Sheet ${sheetName} not found!\n`;
+                }
+                out.textContent = text;
+                console.log(text);
+            } catch (e) {
+                out.textContent = "Error: " + e.message;
+                console.error(e);
+            }
+        }
+        run();
+    </script>
+</body>
+</html>
