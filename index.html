@@ -181,6 +181,10 @@
                     <i data-lucide="users"></i>
                     <span>Usuarios y Roles</span>
                 </a>
+                <a href="#" class="menu-item admin-only" data-target="sec-settings">
+                    <i data-lucide="palette"></i>
+                    <span>PersonalizaciÃ³n</span>
+                </a>
                 <a href="#" class="menu-item admin-only" data-target="sec-updates">
                     <i data-lucide="package-plus"></i>
                     <span>Actualizaciones</span>
@@ -739,6 +743,48 @@
                         <button class="btn btn-primary btn-block" id="btn-create-user">
                             <i data-lucide="user-plus"></i> Crear Usuario
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCION 8: PERSONALIZACION -->
+            <div id="sec-settings" class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h1>PersonalizaciÃ³n Institucional</h1>
+                        <p>Configure los datos que aparecerÃ¡n en pantallas, cabeceras y reportes.</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card">
+                        <h3>Datos de instalaciÃ³n</h3>
+                        <div class="form-group">
+                            <label for="settings-company-name">Nombre de la empresa</label>
+                            <input type="text" id="settings-company-name" placeholder="Nombre institucional">
+                        </div>
+                        <div class="form-group">
+                            <label for="settings-legal-rep">Representante legal</label>
+                            <input type="text" id="settings-legal-rep" placeholder="Nombre del representante legal">
+                        </div>
+                        <div class="form-group">
+                            <label for="settings-logo">Logo institucional</label>
+                            <input type="file" id="settings-logo" accept=".png,.jpg,.jpeg,.webp">
+                        </div>
+                        <button class="btn btn-primary btn-block" id="btn-save-settings">
+                            <i data-lucide="save"></i> Guardar PersonalizaciÃ³n
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h3>Vista previa</h3>
+                        <div class="brand-preview">
+                            <img id="settings-logo-preview" src="CFC.png" alt="Logo institucional" onerror="this.style.display='none'">
+                            <div>
+                                <h4 id="settings-company-preview">CorporaciÃ³n CFC S.A.</h4>
+                                <p id="settings-legal-preview">Representante Legal</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

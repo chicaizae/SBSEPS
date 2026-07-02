@@ -37,6 +37,12 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS app_settings (
+    setting_key VARCHAR(80) PRIMARY KEY,
+    setting_value TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS controls (
     id VARCHAR(30) PRIMARY KEY,
     excel_index INT DEFAULT 0,
@@ -116,3 +122,8 @@ CREATE TABLE IF NOT EXISTS update_packages (
 
 INSERT IGNORE INTO schema_migrations (version, description)
 VALUES ('001_initial_sbseps', 'Initial SBSEPS schema with users, roles, controls and evaluations');
+
+INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES
+('company_name', 'Corporacion CFC S.A.'),
+('legal_representative', 'Representante Legal'),
+('logo_url', 'CFC.png');

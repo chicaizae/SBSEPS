@@ -86,6 +86,25 @@ const updateUpload = multer({
     }
 });
 
+const logoUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+        filename: (req, file, cb) => {
+            const cleanName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, `brand-${uniqueSuffix}-${cleanName}`);
+        }
+    }),
+    limits: { fileSize: Number(process.env.MAX_LOGO_MB || 5) * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
+            return cb(new Error('Tipo de logo no permitido. Use PNG, JPG o WEBP.'));
+        }
+        cb(null, true);
+    }
+});
+
 // --- DATABASE MANAGER ---
 const DEFAULT_DB_NAME = process.env.DB_NAME || 'SBSEPS';
 const DEFAULT_DB_USER = process.env.DB_USER || 'seguridadinf';
@@ -275,6 +294,14 @@ async function initializeSchema() {
     `);
 
     await run(`
+        CREATE TABLE IF NOT EXISTS app_settings (
+            setting_key VARCHAR(80) PRIMARY KEY,
+            setting_value ${textType},
+            updated_at ${dateTimeDefault}
+        )
+    `);
+
+    await run(`
         CREATE TABLE IF NOT EXISTS controls (
             id VARCHAR(30) PRIMARY KEY,
             excel_index INTEGER DEFAULT 0,
@@ -359,6 +386,40 @@ async function initializeSchema() {
             '001_initial_sbseps',
             'Initial SBSEPS schema with users, roles, controls and evaluations'
         ]);
+    }
+
+    await ensureDefaultSettings();
+}
+
+async function ensureDefaultSettings() {
+    const defaults = {
+        company_name: 'Corporacion CFC S.A.',
+        legal_representative: 'Representante Legal',
+        logo_url: 'CFC.png'
+    };
+
+    for (const [key, value] of Object.entries(defaults)) {
+        const rows = await query('SELECT setting_key FROM app_settings WHERE setting_key = ?', [key]);
+        if (!rows.length) {
+            await run('INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)', [key, value]);
+        }
+    }
+}
+
+async function getAppSettings() {
+    const rows = await query('SELECT setting_key, setting_value FROM app_settings');
+    return rows.reduce((acc, row) => {
+        acc[row.setting_key] = row.setting_value;
+        return acc;
+    }, {});
+}
+
+async function setAppSetting(key, value) {
+    const existing = await query('SELECT setting_key FROM app_settings WHERE setting_key = ?', [key]);
+    if (existing.length) {
+        await run('UPDATE app_settings SET setting_value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting_key = ?', [value, key]);
+    } else {
+        await run('INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?)', [key, value]);
     }
 }
 
@@ -638,6 +699,59 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
     res.json({ success: true, message: 'Contrasena actualizada.' });
 });
 
+app.get('/api/settings', requireAuth, async (req, res) => {
+    try {
+        const settings = await getAppSettings();
+        res.json({
+            success: true,
+            settings: {
+                companyName: settings.company_name || 'Corporacion CFC S.A.',
+                legalRepresentative: settings.legal_representative || 'Representante Legal',
+                logoUrl: settings.logo_url || 'CFC.png'
+            }
+        });
+    } catch (err) {
+        console.error('Error loading settings:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/settings', requireAuth, requireRole('admin'), logoUpload.single('logo'), async (req, res) => {
+    try {
+        const { companyName, legalRepresentative } = req.body || {};
+        const cleanCompany = String(companyName || '').trim();
+        const cleanRepresentative = String(legalRepresentative || '').trim();
+
+        if (!cleanCompany || !cleanRepresentative) {
+            if (req.file?.path) fs.unlink(req.file.path, () => {});
+            return res.status(400).json({ success: false, error: 'Nombre de empresa y representante legal son requeridos.' });
+        }
+
+        await setAppSetting('company_name', cleanCompany);
+        await setAppSetting('legal_representative', cleanRepresentative);
+
+        if (req.file) {
+            const logoUrl = '/uploads/' + req.file.filename;
+            await setAppSetting('logo_url', logoUrl);
+        }
+
+        const settings = await getAppSettings();
+        res.json({
+            success: true,
+            message: 'Configuracion institucional actualizada.',
+            settings: {
+                companyName: settings.company_name,
+                legalRepresentative: settings.legal_representative,
+                logoUrl: settings.logo_url
+            }
+        });
+    } catch (err) {
+        if (req.file?.path) fs.unlink(req.file.path, () => {});
+        console.error('Error saving settings:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.get('/api/users', requireAuth, requireRole('admin'), async (req, res) => {
     const users = await query('SELECT id, username, display_name, role, active, must_change_password, created_at, updated_at FROM users ORDER BY username ASC');
     res.json({ success: true, users });
@@ -905,7 +1019,7 @@ app.post('/api/upload-evidence', requireAuth, requireRole('admin', 'auditor', 't
 });
 
 app.use((err, req, res, next) => {
-    if (err instanceof multer.MulterError || err.message.includes('archivo') || err.message.includes('actualizacion')) {
+    if (err instanceof multer.MulterError || err.message.includes('archivo') || err.message.includes('actualizacion') || err.message.includes('logo')) {
         const message = err.code === 'LIMIT_FILE_SIZE'
             ? `El archivo supera el limite configurado.`
             : err.message;

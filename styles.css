@@ -93,6 +93,38 @@ body.is-admin .admin-only {
     padding: 20px;
 }
 
+.brand-preview {
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: #f8fafc;
+}
+
+.brand-preview img {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+}
+
+.brand-preview h4 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+}
+
+.brand-preview p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
 /* Global Reset & Base Styles */
 * {
     margin: 0;

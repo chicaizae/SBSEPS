@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
         companyName: 'Corporación CFC S.A.',
         evaluatorName: '',
         evaluationDate: new Date().toISOString().split('T')[0],
+        orgSettings: {
+            companyName: 'Corporacion CFC S.A.',
+            legalRepresentative: 'Representante Legal',
+            logoUrl: 'CFC.png'
+        },
         
         // Active evaluation rows
         rows: [],
@@ -83,6 +88,57 @@ document.addEventListener('DOMContentLoaded', () => {
         return href.startsWith('/uploads/') ? href : '#';
     }
 
+    function getLogoHtml(className = '') {
+        const safeUrl = escapeAttribute(state.orgSettings.logoUrl || 'CFC.png');
+        const safeAlt = escapeAttribute(`Logo ${state.orgSettings.companyName || 'institucional'}`);
+        return `<img class="${className}" src="${safeUrl}" alt="${safeAlt}" onerror="this.style.display='none';">`;
+    }
+
+    function applyOrgSettings(settings = {}) {
+        state.orgSettings = {
+            companyName: settings.companyName || state.orgSettings.companyName,
+            legalRepresentative: settings.legalRepresentative || state.orgSettings.legalRepresentative,
+            logoUrl: settings.logoUrl || state.orgSettings.logoUrl
+        };
+
+        document.title = `Due Diligence - ${state.orgSettings.companyName}`;
+
+        const sidebarLogo = document.querySelector('.sidebar-logo-container img');
+        if (sidebarLogo) {
+            sidebarLogo.src = state.orgSettings.logoUrl;
+            sidebarLogo.alt = `Logo ${state.orgSettings.companyName}`;
+            sidebarLogo.style.display = '';
+        }
+
+        if (companyInput && (!companyInput.value.trim() || companyInput.value.includes('CFC'))) {
+            companyInput.value = state.orgSettings.companyName;
+        }
+
+        const settingsCompany = document.getElementById('settings-company-name');
+        const settingsLegal = document.getElementById('settings-legal-rep');
+        const previewLogo = document.getElementById('settings-logo-preview');
+        const previewCompany = document.getElementById('settings-company-preview');
+        const previewLegal = document.getElementById('settings-legal-preview');
+
+        if (settingsCompany) settingsCompany.value = state.orgSettings.companyName;
+        if (settingsLegal) settingsLegal.value = state.orgSettings.legalRepresentative;
+        if (previewLogo) {
+            previewLogo.src = state.orgSettings.logoUrl;
+            previewLogo.style.display = '';
+        }
+        if (previewCompany) previewCompany.textContent = state.orgSettings.companyName;
+        if (previewLegal) previewLegal.textContent = state.orgSettings.legalRepresentative;
+    }
+
+    async function loadOrgSettings() {
+        try {
+            const data = await requestJson('/api/settings');
+            applyOrgSettings(data.settings);
+        } catch (e) {
+            console.error('Error loading organization settings:', e);
+        }
+    }
+
     // Initialize Lucide Icons
     lucide.createIcons();
 
@@ -132,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         // Si no hay evaluaciones, mostrar workspace vacío
                         state.evaluationId = '';
-                        state.companyName = 'Sin Evaluación Cargada';
+                        state.companyName = state.orgSettings.companyName;
                         state.evaluatorName = user.displayName || user.username;
                         state.rows = [];
                         badgeCompany.textContent = state.companyName;
@@ -164,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initializeAuth() {
         try {
             const data = await requestJson('/api/auth/me');
+            await loadOrgSettings();
             applyAuthenticatedUser(data.user);
         } catch (e) {
             loginScreen.style.display = 'flex';
@@ -184,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     captcha: document.getElementById('login-captcha').value.trim()
                 })
             });
+            await loadOrgSettings();
             applyAuthenticatedUser(data.user);
             showToast('Ingreso correcto.', 'success');
         } catch (e) {
@@ -414,6 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderGapTracker();
             } else if (sectionId === 'sec-users') {
                 renderUsersSection();
+            } else if (sectionId === 'sec-settings') {
+                renderSettingsSection();
             } else if (sectionId === 'sec-updates') {
                 renderUpdatesSection();
             }
@@ -578,6 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveBtn = document.getElementById('btn-save-eval');
         const changeBtn = document.getElementById('btn-change-file');
         const adminLink = document.querySelector('.menu-item[data-target="sec-users"]');
+        const settingsLink = document.querySelector('.menu-item[data-target="sec-settings"]');
         const updatesLink = document.querySelector('.menu-item[data-target="sec-updates"]');
         const cardStartNew = document.getElementById('card-start-new-audit');
 
@@ -587,6 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveBtn) saveBtn.style.display = 'flex';
         if (changeBtn) changeBtn.style.display = 'flex';
         if (adminLink) adminLink.style.display = role === 'admin' ? 'flex' : 'none';
+        if (settingsLink) settingsLink.style.display = role === 'admin' ? 'flex' : 'none';
         if (updatesLink) updatesLink.style.display = role === 'admin' ? 'flex' : 'none';
         if (cardStartNew) cardStartNew.style.display = role === 'auditor' ? 'flex' : 'none';
 
@@ -604,6 +666,62 @@ document.addEventListener('DOMContentLoaded', () => {
             if (changeBtn) changeBtn.style.display = 'none';
         }
     }
+
+    function renderSettingsSection() {
+        if (state.currentRole !== 'admin') {
+            showToast('Solo administradores pueden personalizar la instalacion.', 'error');
+            switchSection('sec-dashboard-exec');
+            return;
+        }
+        applyOrgSettings(state.orgSettings);
+    }
+
+    document.getElementById('btn-save-settings')?.addEventListener('click', async () => {
+        if (state.currentRole !== 'admin') {
+            showToast('Solo administradores pueden personalizar la instalacion.', 'error');
+            return;
+        }
+
+        const companyName = document.getElementById('settings-company-name').value.trim();
+        const legalRepresentative = document.getElementById('settings-legal-rep').value.trim();
+        const logoFile = document.getElementById('settings-logo').files[0];
+
+        const formData = new FormData();
+        formData.append('companyName', companyName);
+        formData.append('legalRepresentative', legalRepresentative);
+        if (logoFile) formData.append('logo', logoFile);
+
+        try {
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'No se pudo guardar la configuracion.');
+            }
+
+            document.getElementById('settings-logo').value = '';
+            applyOrgSettings(data.settings);
+            if (!state.evaluationId) {
+                state.companyName = state.orgSettings.companyName;
+                badgeCompany.textContent = state.companyName;
+            }
+            if (state.activeSection === 'sec-reports') generateReportPreview();
+            showToast('Personalizacion institucional guardada.', 'success');
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    });
+
+    document.getElementById('settings-logo')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const previewLogo = document.getElementById('settings-logo-preview');
+        previewLogo.src = URL.createObjectURL(file);
+        previewLogo.style.display = '';
+    });
 
     async function renderUsersSection() {
         if (state.currentRole !== 'admin') {
@@ -1542,9 +1660,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Common Letterhead header
         let reportHeaderHtml = `
             <div class="report-logo-header">
-                <img src="CFC.png" alt="CFC Logo" onerror="this.src='logo-placeholder.png';">
+                ${getLogoHtml()}
                 <div class="report-title-box">
-                    <h2>Corporación CFC S.A.</h2>
+                    <h2>${escapeHtml(state.orgSettings.companyName)}</h2>
                     <p>Auditoría de Seguridad de la Información y Due Diligence</p>
                 </div>
             </div>
@@ -1771,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="height: 60px;"></div>
                     <div class="signature-line"></div>
                     <p style="font-weight:700; margin-top:5px;">Firma Representante Legal</p>
-                    <p style="color:#64748b; font-size:0.75rem;">Oficial de Cumplimiento / CFC</p>
+                    <p style="color:#64748b; font-size:0.75rem;">${escapeHtml(state.orgSettings.legalRepresentative)}</p>
                 </div>
             </div>
         `;
